@@ -28,16 +28,16 @@ In an earlier lab, the **Coffee Suppliers** application was migrated from EC2 in
 ## 🏗️ Architecture
 
 ```
-┌──────────────────┐     ┌───────────────────┐     ┌──────────────────────────┐     ┌────────────────────────┐
-│ Café website     │ ──▶ │ Amazon API Gateway│ ──▶ │ Elastic Beanstalk        │ ──▶ │ Aurora Serverless v2   │
-│ (Amazon S3)      │     │ GET /bean_products│     │ Docker container on EC2  │     │ (MySQL compatible)     │
-└──────────────────┘     └───────────────────┘     └────────────┬─────────────┘     └────────────────────────┘
-                                                                │ pulls image
-                                                                ▼
-                                                      ┌──────────────────┐
-                                                      │ Amazon ECR       │
-                                                      │ cafe/node-web-app│
-                                                      └──────────────────┘
+┌──────────────────┐      ┌───────────────────┐     ┌──────────────────────────┐     ┌────────────────────────┐
+│ Café website     │ ──▶   Amazon API Gateway  ──▶    Elastic Beanstalk         ──▶  Aurora Serverless v2   
+│ (Amazon S3)      │      │ GET /bean_products│     │ Docker container on EC2  │     │ (MySQL compatible)     │
+└──────────────────┘      └───────────────────┘     └────────────┬─────────────┘     └────────────────────────┘
+                                                                 │ pulls image
+                                                                 ▼
+                                                       ┌──────────────────┐
+                                                       │ Amazon ECR       │
+                                                       │ cafe/node-web-app│
+                                                       └──────────────────┘
 ```
 
 ## 🧰 Services & Tools Used
