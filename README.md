@@ -28,16 +28,16 @@ In an earlier lab, the **Coffee Suppliers** application was migrated from EC2 in
 ## 🏗️ Architecture
 
 ```
-┌──────────────────┐     ┌───────────────────┐     ┌──────────────────────────┐     ┌────────────────────────┐
-│ Café website     │ ──▶ │ Amazon API Gateway│ ──▶ │ Elastic Beanstalk        │ ──▶ │ Aurora Serverless v2   │
-│ (Amazon S3)      │     │ GET /bean_products│     │ Docker container on EC2  │     │ (MySQL compatible)     │
-└──────────────────┘     └───────────────────┘     └────────────┬─────────────┘     └────────────────────────┘
-                                                                │ pulls image
-                                                                ▼
-                                                      ┌──────────────────┐
-                                                      │ Amazon ECR       │
-                                                      │ cafe/node-web-app│
-                                                      └──────────────────┘
+┌────────────────────┐      ┌─────────────────────┐      ┌──────────────────────────┐      ┌────────────────────────────┐
+│  Café website      │ ──▶   Amazon API Gateway    ──▶      Elastic Beanstalk        ──▶   Aurora     Serverless v2   
+│  (Amazon S3)       │      │ GET /bean_products  │      │ Docker container on EC2  │      │ (MySQL       compatible)   │
+└────────────────────┘      └─────────────────────┘      └────────────┬─────────────┘      └────────────────────────────┘
+                                                                      │ pulls image
+                                                                      ▼
+                                                             ┌──────────────────┐
+                                                             │ Amazon ECR       │
+                                                             │ cafe/node-web-app│
+                                                             └──────────────────┘
 ```
 
 ## 🧰 Services & Tools Used
@@ -51,24 +51,27 @@ In an earlier lab, the **Coffee Suppliers** application was migrated from EC2 in
 ### 1️⃣ Prepare the environment
 Downloaded the lab code, ran `setup.sh` (recreates the S3 website, DynamoDB table, REST API and pushes the Docker image to ECR), and verified the café website.
 
-![Café website](screenshots/01-cafe-website-s3.jpg)
+<img width="1568" height="714" alt="01-cafe-website-s3" src="https://github.com/user-attachments/assets/911882f5-c5e0-4c89-b85c-cfc6840c5e41" />
+
 
 ### 2️⃣ Networking: second subnet + internet route
 RDS and a load-balanced Elastic Beanstalk environment need **at least two subnets in different Availability Zones**. I created `extraSubnetForRds` (`10.0.2.0/24`) in a second AZ, enabled auto-assign public IPv4, and associated it with the route table that has a route to the Internet Gateway.
 
-![Route table with IGW](screenshots/02-subnet-route-table.jpg)
+<img width="1568" height="624" alt="02-subnet-route-table" src="https://github.com/user-attachments/assets/a220bf75-f5c9-4d6e-84af-5d29c2dc964c" />
+
 
 ### 3️⃣ Aurora Serverless v2 database
 Created the `supplierdb` cluster (Aurora MySQL compatible, Serverless v2, Dev/Test template) inside the **IDE VPC**, attached to the **Lab IDE security group**, with the **RDS Data API** enabled and an initial database named `suppliers`.
 
-![Aurora available](screenshots/03-aurora-cluster-available.jpg)
+<img width="1568" height="629" alt="03-aurora-cluster-available" src="https://github.com/user-attachments/assets/5480475b-cd9d-40e7-8c08-8777daaa099f" />
+
 
 ### 4️⃣ Security group rules
 Added two inbound rules to the Lab IDE security group:
 - **Custom TCP 8000** from *My IP*, to view the containerized app
 - **MYSQL/Aurora 3306** from the security group itself (self-referencing), so the app can talk to the database
 
-![Inbound rules](screenshots/04-security-group-inbound-rules.jpg)
+<img width="1568" height="579" alt="04-security-group-inbound-rules" src="https://github.com/user-attachments/assets/a52dba37-c459-4325-93a4-01af7dbf22db" />
 
 ### 5️⃣ Test the container against Aurora
 Started the container with `APP_DB_HOST` pointing to the Aurora cluster endpoint. The home page loaded, but **List of suppliers** returned an error. **This is expected**: the `COFFEE` database, `nodeapp` user and `suppliers` table did not exist yet.
@@ -78,17 +81,20 @@ docker run -d --name node-web-app-1 -p 8000:3000 \
   -e APP_DB_HOST="<aurora-cluster-endpoint>" cafe/node-web-app
 ```
 
-![Expected error](screenshots/05-app-expected-db-error.jpg)
+<img width="1554" height="784" alt="05-app-expected-db-error" src="https://github.com/user-attachments/assets/978905df-cb6b-4011-801c-68e5649305b1" />
+
 
 ### 6️⃣ Create DB objects and load data
 Used the **RDS Query Editor** to create the `nodeapp` user, the `COFFEE` database and the `suppliers` table, then loaded the supplier SQL dump with the MySQL client (`source coffee_db_dump.sql`). The app now lists all **8 suppliers** (and the `beans` table has **14 records**).
 
-![Suppliers loaded](screenshots/06-suppliers-loaded-from-aurora.jpg)
+<img width="1568" height="714" alt="06-suppliers-loaded-from-aurora" src="https://github.com/user-attachments/assets/5ec67bad-ffa3-49b6-b71b-f2b3750b7f63" />
+
 
 ### 7️⃣ IAM review for Elastic Beanstalk
 Reviewed `aws-elasticbeanstalk-ec2-instance-policy` (ECR auth token, image pull, Beanstalk `Put*`) and confirmed it is attached to `aws-elasticbeanstalk-ec2-role`, whose trust policy allows `ec2.amazonaws.com`.
 
-![IAM policy](screenshots/07-iam-policy-summary.jpg)
+<img width="1568" height="622" alt="07-iam-policy-summary" src="https://github.com/user-attachments/assets/0df4d861-e41d-4b4b-84c8-130c2d7d8e7b" />
+
 
 ### 8️⃣ Elastic Beanstalk environment
 Created the application and environment from the CLI with an `options.txt` file (instance profile, security group, VPC, both subnets, `APP_DB_HOST`).
@@ -101,38 +107,48 @@ aws elasticbeanstalk create-environment \
   --region us-east-1 --option-settings file://options.txt
 ```
 
-![Environment launched](screenshots/08-beanstalk-env-launched.jpg)
+<img width="1568" height="626" alt="08-beanstalk-env-launched" src="https://github.com/user-attachments/assets/81a15444-e6f8-4858-89e1-a7f576566fed" />
+
 
 The default sample application confirmed the platform, load balancer and networking were healthy:
 
-![Sample app](screenshots/09-beanstalk-sample-app.jpg)
+<img width="1568" height="720" alt="09-beanstalk-sample-app" src="https://github.com/user-attachments/assets/d7763d09-abd8-4846-b570-c1661f61cb8e" />
+
 
 ### 9️⃣ Deploy the coffee suppliers container
 Created `Dockerrun.aws.json` pointing at the ECR repository (container port `3000`), then used **Upload and deploy** with the version label `MyNodeApp-version-1a`.
 
-![Upload and deploy](screenshots/10-upload-and-deploy-dialog.jpg)
+<img width="728" height="622" alt="10-upload-and-deploy-dialog" src="https://github.com/user-attachments/assets/906d46b4-ba87-49f8-82aa-c993ab4fec50" />
 
-![Deploy success](screenshots/11-beanstalk-deploy-success.jpg)
+
+<img width="1568" height="701" alt="11-beanstalk-deploy-success" src="https://github.com/user-attachments/assets/2ee620d2-0a09-4157-b6d3-4eba37d84225" />
+
 
 The suppliers page now runs from the Beanstalk URL and reads from Aurora:
 
-![Suppliers on Beanstalk](screenshots/12-suppliers-on-beanstalk-url.jpg)
+<img width="1551" height="784" alt="12-suppliers-on-beanstalk-url" src="https://github.com/user-attachments/assets/aa55239d-c049-4b56-a538-ed52010ea7e0" />
+
 
 ### 🔟 API Gateway proxy → café website
 Before the change, the café website's **Buy Coffee** section showed *"Live coffee supply information coming very soon!"*
 
-![Before](screenshots/13-buy-coffee-before.jpg)
+<img width="1568" height="533" alt="13-buy-coffee-before" src="https://github.com/user-attachments/assets/5c2e2c15-1903-40e8-9074-bde4ff818df7" />
+
 
 Created the `/bean_products` resource (with CORS) and a `GET` method using an **HTTP proxy integration** to `http://<beanstalk-url>/beans.json`, tested it (status `200`), then deployed to the `prod` stage.
 
-![API Gateway resources](screenshots/14-api-gateway-resources.jpg)
+<img width="1568" height="676" alt="14-api-gateway-resources" src="https://github.com/user-attachments/assets/f431b3f5-027a-4b8a-8131-da565b0aad81" />
 
-![Deploy API](screenshots/15-api-gateway-deploy-dialog.jpg)
+
+<img width="735" height="425" alt="15-api-gateway-deploy-dialog" src="https://github.com/user-attachments/assets/83b2e366-3826-4f1e-9826-79c6ebac36e4" />
+
+
 
 ### ✅ Final result
 The Buy Coffee section now shows the live bean inventory (type, price, stock, description) served through API Gateway → Elastic Beanstalk → Aurora Serverless.
 
-![Final result](screenshots/17-buy-coffee-after-final.jpg)
+<img width="1568" height="717" alt="17-buy-coffee-after-final" src="https://github.com/user-attachments/assets/e2633b54-96a8-4359-b50f-2cf8718cdfa3" />
+
 
 ---
 
@@ -159,7 +175,8 @@ The Buy Coffee section now shows the live bean inventory (type, price, stock, de
 <details>
 <summary><b>Cached page screenshot (bug #13)</b></summary>
 
-![Cached page](screenshots/16-buy-coffee-cached-page.jpg)
+<img width="1568" height="716" alt="16-buy-coffee-cached-page" src="https://github.com/user-attachments/assets/b24f3f90-c4cc-49f7-b581-5c79ce25b480" />
+
 
 </details>
 
@@ -190,12 +207,7 @@ The Buy Coffee section now shows the live bean inventory (type, price, stock, de
 └── README.md
 ```
 
-## 🔒 Notes
 
-- This was a temporary lab environment; all resources were deleted when the lab ended.
-- Credentials and secrets are intentionally **not** included in this repository.
-
----
 
 <div align="center">
 
